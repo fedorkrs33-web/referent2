@@ -29,5 +29,4 @@ jobs:
         run: |
           git remote add github https://x-access-token:${{ secrets.REFERENT2 }}@github.com/fedorkrs33-web/referent2.git
           git push github main --force
-        env:
-          REFERENT2: ${{ secrets.REFERENT2 }}
+
