@@ -1,0 +1,26 @@
+name: Mirror to GitHub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  mirror:
+    runs-on: default
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure Git
+        run: |
+          git config user.name "GitVerse Bot"
+          git config user.email "bot@gitverse.ru"
+
+      - name: Push to GitHub
+        run: |
+          git remote add github https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Fedorkrs33/referent2.git
+          git push github main --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
