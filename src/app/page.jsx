@@ -1,38 +1,51 @@
+'use client'; // ← ЭТО ОБЯЗАТЕЛЬНО
+
 import { useState } from 'react';
-import Head from 'next/head';
+import { parseArticle } from '../lib/parser';
+import { callGigaChat } from '../lib/aiClient';
 
 export default function Home() {
   const [url, setUrl] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleAction = (action) => {
+  const handleAction = async (action) => {
     if (!url) return;
     setLoading(true);
-    // Эмуляция ответа AI
-    setTimeout(() => {
+    setResult('');
+
+    try {
+      const text = await parseArticle(url);
+
+      let prompt = '';
       switch (action) {
         case 'summary':
-          setResult('Статья о том, как ИИ меняет подход к обработке текстов.');
+          prompt = `Кратко опиши, о чём статья: ${text}`;
           break;
         case 'theses':
-          setResult('1. ИИ ускоряет анализ статей\n2. GigaChat помогает генерировать контент\n3. Next.js упрощает фронтенд');
+          prompt = `Выдели 3–5 ключевых тезисов: ${text}`;
           break;
         case 'telegram':
-          setResult('🔥 Нейросети уже пишут посты за вас!\n\nТеперь достаточно вставить ссылку — и ИИ сам выделит суть, тезисы и подготовит пост для Telegram. Будущее уже здесь 🚀');
+          prompt = `Напиши пост для Telegram: ${text}`;
           break;
+        default:
+          return;
       }
+
+      const aiText = await callGigaChat([
+        { role: 'user', content: prompt }
+      ]);
+
+      setResult(aiText);
+    } catch (err) {
+      setResult(`Ошибка: ${err.message}`);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <Head>
-        <title>Referent — AI для статей</title>
-        <meta name="description" content="Анализ статей с помощью ИИ" />
-      </Head>
-
       <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
           📄 Referent — AI для статей
@@ -41,7 +54,6 @@ export default function Home() {
           Введите URL англоязычной статьи, и ИИ поможет понять её суть.
         </p>
 
-        {/* Поле ввода */}
         <div className="mb-6">
           <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
             URL англоязычной статьи
@@ -56,7 +68,6 @@ export default function Home() {
           />
         </div>
 
-        {/* Кнопки */}
         <div className="mb-6 flex flex-wrap gap-3">
           <button
             type="button"
@@ -84,7 +95,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Результат */}
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Результат:</h3>
           {loading ? (
