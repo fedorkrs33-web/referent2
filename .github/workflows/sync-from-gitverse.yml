@@ -1,0 +1,62 @@
+name: Sync from GitVerse
+
+# Запуск по расписанию и вручную
+on:
+  # Каждые 30 минут
+  schedule:
+    - cron: '*/30 * * * *'
+  
+  # Позволяет запустить вручную в интерфейсе GitHub
+  workflow_dispatch:
+
+# Разрешаем выполнение только владельцу
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Клонируем текущий репозиторий на GitHub
+      - name: Checkout GitHub repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true  # Чтобы можно было пушить
+          fetch-depth: 0             # Забираем всю историю
+
+      # 2. Устанавливаем Git-конфиг
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      # 3. Добавляем SSH-ключ для доступа к GitVerse
+      - name: Setup SSH Key for GitVerse
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GITVERSE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Добавляем gitverse.ru в known_hosts
+          ssh-keyscan gitverse.ru >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      # 4. Добавляем удалённый репозиторий GitVerse
+      - name: Add GitVerse as remote
+        run: |
+          git remote add upstream git@gitverse.ru:Fedorkrs.33/referent2.git || true
+
+      # 5. Забираем изменения из GitVerse
+      - name: Fetch from GitVerse
+        run: |
+          git fetch upstream main
+
+      # 6. Мержим без коммита (fast-forward)
+      - name: Fast-forward merge
+        run: |
+          git merge upstream/main --ff-only
+
+      # 7. Пушим в GitHub (если есть изменения)
+      - name: Push to GitHub
+        run: |
+          git push origin main
