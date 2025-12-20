@@ -1,15 +1,12 @@
 'use client'; // ← ЭТО ОБЯЗАТЕЛЬНО
 
 import { useState } from 'react';
-import { parseArticle } from '../lib/parser';
-import { callGigaChat } from '../lib/aiClient';
 
 export default function Home() {
   const [url, setUrl] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleAction = async (action) => {
+ 
     if (!url) return;
     setLoading(true);
     setResult('');
@@ -43,7 +40,36 @@ export default function Home() {
       setLoading(false);
     }
   };
+ const handleAction = async (action) => {
+   if (!url) {
+    setResult('Введите URL статьи');
+    return;
+  }
 
+  setLoading(true);
+  setResult('');
+
+  try {
+    const res = await fetch('/api/process', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url, action }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Неизвестная ошибка');
+    }
+
+    setResult(data.text);
+  } catch (err) {
+    setResult(`❌ Ошибка: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-8">
