@@ -1,4 +1,4 @@
-'use client'; // ← ЭТО ОБЯЗАТЕЛЬНО
+'use client';
 
 import { useState } from 'react';
 
@@ -6,70 +6,41 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
- 
-    if (!url) return;
+
+  // ✅ Единственная правильная версия handleAction
+  const handleAction = async (action) => {
+    if (!url) {
+      setResult('Введите URL статьи');
+      return;
+    }
+
     setLoading(true);
     setResult('');
 
     try {
-      const text = await parseArticle(url);
+      const res = await fetch('/api/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, action }),
+      });
 
-      let prompt = '';
-      switch (action) {
-        case 'summary':
-          prompt = `Кратко опиши, о чём статья: ${text}`;
-          break;
-        case 'theses':
-          prompt = `Выдели 3–5 ключевых тезисов: ${text}`;
-          break;
-        case 'telegram':
-          prompt = `Напиши пост для Telegram: ${text}`;
-          break;
-        default:
-          return;
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Неизвестная ошибка');
       }
 
-      const aiText = await callGigaChat([
-        { role: 'user', content: prompt }
-      ]);
-
-      setResult(aiText);
+      setResult(data.text);
     } catch (err) {
-      setResult(`Ошибка: ${err.message}`);
+      setResult(`❌ Ошибка: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
- const handleAction = async (action) => {
-   if (!url) {
-    setResult('Введите URL статьи');
-    return;
-  }
 
-  setLoading(true);
-  setResult('');
-
-  try {
-    const res = await fetch('/api/process', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url, action }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Неизвестная ошибка');
-    }
-
-    setResult(data.text);
-  } catch (err) {
-    setResult(`❌ Ошибка: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
+  // ✅ Возвращаем JSX
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-8">
@@ -80,6 +51,7 @@ export default function Home() {
           Введите URL англоязычной статьи, и ИИ поможет понять её суть.
         </p>
 
+        {/* Поле ввода */}
         <div className="mb-6">
           <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
             URL англоязычной статьи
@@ -94,6 +66,7 @@ export default function Home() {
           />
         </div>
 
+        {/* Кнопки */}
         <div className="mb-6 flex flex-wrap gap-3">
           <button
             type="button"
@@ -121,6 +94,7 @@ export default function Home() {
           </button>
         </div>
 
+        {/* Результат */}
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Результат:</h3>
           {loading ? (
@@ -143,3 +117,4 @@ export default function Home() {
     </div>
   );
 }
+
