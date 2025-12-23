@@ -54,35 +54,38 @@ const handleParse = async () => {
   }
 };
 
-
   // Перевод на русский
-  const handleTranslate = async () => {
-    if (!parsedText) {
-      setResult('Сначала выполните парсинг статьи');
-      return;
-    }
+ const handleTranslate = async () => {
+  if (!parsedText) {
+    setResult('Сначала выполните парсинг статьи');
+    return;
+  }
 
-    setLoading(true);
-    setResult('');
+  setLoading(true);
+  setResult('');
 
-    try {
-      const res = await fetch('/api/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: parsedText, action: 'translate' }),
-      });
+  try {
+    const res = await fetch('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: parsedText,
+        action: 'translate'
+      }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+    if (!res.ok) throw new Error(data.error);
 
-      setResult(data.text);
-    } catch (err) {
-      setResult(`❌ Ошибка перевода: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setResult(data.text);
+  } catch (err) {
+    setResult(`❌ Ошибка перевода: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Общая функция для AI-действий
   const handleAction = async (action) => {
