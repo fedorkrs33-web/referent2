@@ -20,36 +20,40 @@ export default function Home() {
   };
 
   // Парсинг статьи
-  const handleParse = async () => {
-    if (!url) {
-      setResult('Введите URL статьи');
-      return;
-    }
+const handleParse = async () => {
+  if (!url) {
+    setResult('Введите URL статьи');
+    return;
+  }
 
-    setLoading(true);
-    setResult('Выполняется парсинг...');
-    setParsedText('');
-    setResult('');
+  setLoading(true);
+  setResult('');
+  setParsedText('');
 
-    try {
-      const res = await fetch('/api/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, action: 'parse' }),
-      });
+  try {
+    const res = await fetch('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, action: 'parse' }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+    if (!res.ok) throw new Error(data.error);
 
-      setParsedText(data.text);
-      setResult(`✅ Статья успешно распаршена (${data.text.length} символов)`);
-    } catch (err) {
-      setResult(`❌ Ошибка парсинга: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // ✅ Сохраняем распаршенный текст
+    setParsedText(data.text);
+
+    // ✅ Выводим сам текст статьи, а не только статус
+    setResult(data.text);
+
+  } catch (err) {
+    setResult(`❌ Ошибка парсинга: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Перевод на русский
   const handleTranslate = async () => {

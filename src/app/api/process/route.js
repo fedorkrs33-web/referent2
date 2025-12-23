@@ -1,48 +1,39 @@
 // src/app/api/process/route.js
 import { NextRequest, NextResponse } from 'next/server';
-import { parseArticle } from '@/lib/parser';
-import { callGigaChat } from '@/lib/aiClient';
+import { parseArticle } from '../../../lib/parser';
+import { callGigaChat } from '../../../lib/aiClient';
 
 export async function POST(request) {
   try {
-    const { url, action } = await request.json();
+    const body = await request.json();
+    console.log('📥 Получен запрос:', body); // ← Лог
 
-    if (!url || !action) {
-      return NextResponse.json(
-        { error: 'URL и действие обязательны' },
-        { status: 400 }
-      );
+    const { url, action, text } = body;
+
+    if (!action) {
+      console.log('❌ Нет action'); // ←
+      return NextResponse.json({ error: 'Действие обязательно' }, { status: 400 });
     }
 
-    // 1. Парсим статью
-    const text = await parseArticle(url);
+    let inputText = '';
 
-    // 2. Формируем промпт
-    let prompt = '';
-    switch (action) {
-      case 'summary':
-        prompt = `Кратко опиши, о чём статья: ${text}`;
-        break;
-      case 'theses':
-        prompt = `Выдели 3–5 ключевых тезисов: ${text}`;
-        break;
-      case 'telegram':
-        prompt = `Напиши короткий, яркий пост для Telegram. Эмоционально: ${text}`;
-        break;
-      default:
-        return NextResponse.json({ error: 'Неверное действие' }, { status: 400 });
+    if (url) {
+      console.log('🔗 URL получен, парсим...'); // ←
+      inputText = await parseArticle(url);
+    } else if (text) {
+      inputText = text;
+    } else {
+      console.log('❌ Нет ни url, ни text'); // ←
+      return NextResponse.json({ error: 'Нет URL или текста' }, { status: 400 });
     }
 
-    // 3. Запрос к GigaChat
-    const result = await callGigaChat([{ role: 'user', content: prompt }]);
+    if (action === 'parse') {
+      return NextResponse.json({ text: inputText });
+    }
 
-    // 4. Ответ
-    return NextResponse.json({ text: result });
+    // ... остальная логика GigaChat ...
   } catch (error) {
-    console.error('Ошибка в API:', error);
-    return NextResponse.json(
-      { error: 'Не удалось обработать запрос' },
-      { status: 500 }
-    );
+    console.error('❌ Ошибка в API:', error);
+    return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });
   }
 }
