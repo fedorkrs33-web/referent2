@@ -1,8 +1,19 @@
 // src/lib/aiClient.js
 import axios from 'axios';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+
 import { getGigaChatToken } from './auth';
 
-const API_URL = 'https://gigachat.devices.sberbank.ru/api/v1';
+// 🔐 Загружаем сертификат Минцифры
+const certPath = path.resolve(process.cwd(), 'certs', 'mincyfry_root_ca.pem');
+const ca = fs.existsSync(certPath) ? fs.readFileSync(certPath) : null;
+
+const httpsAgent = new https.Agent({
+  ca: ca || undefined,
+  rejectUnauthorized: ca ? true : false, // если сертификат есть — строгая проверка
+});
 
 export async function callGigaChat(messages, model = 'GigaChat') {
   try {
@@ -11,13 +22,10 @@ export async function callGigaChat(messages, model = 'GigaChat') {
     console.log('📨 Сообщения:', messages);
 
     const token = await getGigaChatToken();
-    if (!token) {
-      throw new Error('Токен не получен');
-    }
     console.log('✅ [aiClient] Токен получен');
 
     const response = await axios.post(
-      `${API_URL}/chat/completions`,
+      'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
       {
         model,
         messages,
@@ -29,6 +37,7 @@ export async function callGigaChat(messages, model = 'GigaChat') {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        httpsAgent, // ✅ Передаём агент с сертификатом
         timeout: 30000,
       }
     );
@@ -46,16 +55,15 @@ export async function callGigaChat(messages, model = 'GigaChat') {
     console.error('❌ [aiClient] ПОЛНАЯ ОШИБКА:', {
       message: error.message,
       code: error.code,
-      responseStatus: error.response?.status,
-      responseError: error.response?.data,
-      requestURL: error.config?.url,
-      requestData: error.config?.data,
-      requestHeaders: {
-        authorization: !!error.config?.headers?.Authorization,
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      headers: {
+        auth: !!error.config?.headers?.Authorization,
       },
-      stack: error.stack,
     });
 
     throw new Error('Не удалось получить ответ от ИИ');
   }
 }
+

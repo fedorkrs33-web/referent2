@@ -1,3 +1,4 @@
+// src/app/page.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -16,76 +17,71 @@ export default function Home() {
 
   // Переключение темы
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   // Парсинг статьи
-const handleParse = async () => {
-  if (!url) {
-    setResult('Введите URL статьи');
-    return;
-  }
+  const handleParse = async () => {
+    if (!url) {
+      setResult('Введите URL статьи');
+      return;
+    }
 
-  setLoading(true);
-  setResult('');
-  setParsedText('');
+    setLoading(true);
+    setResult('');
+    setParsedText('');
 
-  try {
-    const res = await fetch('/api/process', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, action: 'parse' }),
-    });
+    try {
+      const res = await fetch('/api/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, action: 'parse' }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error);
 
-    // ✅ Сохраняем распаршенный текст
-    setParsedText(data.text);
-
-    // ✅ Выводим сам текст статьи, а не только статус
-    setResult(data.text);
-
-  } catch (err) {
-    setResult(`❌ Ошибка парсинга: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+      setParsedText(data.text);
+      setResult(data.text);
+    } catch (err) {
+      setResult(`❌ Ошибка парсинга: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Перевод на русский
- const handleTranslate = async () => {
-  if (!parsedText) {
-    setResult('Сначала выполните парсинг статьи');
-    return;
-  }
+  const handleTranslate = async () => {
+    if (!parsedText) {
+      setResult('Сначала выполните парсинг статьи');
+      return;
+    }
 
-  setLoading(true);
-  setResult('');
+    setLoading(true);
+    setResult('');
 
-  try {
-    const res = await fetch('/api/process', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: parsedText,
-        action: 'translate'
-      }),
-    });
+    try {
+      const res = await fetch('/api/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: parsedText,
+          action: 'translate',
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error);
 
-    setResult(data.text);
-  } catch (err) {
-    setResult(`❌ Ошибка перевода: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setResult(data.text);
+    } catch (err) {
+      setResult(`❌ Ошибка перевода: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Общая функция для AI-действий
   const handleAction = async (action) => {

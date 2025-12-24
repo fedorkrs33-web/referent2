@@ -1,4 +1,6 @@
 // src/app/api/test-token/route.js
+const path = require('path');
+process.env.NODE_EXTRA_CA_CERTS = path.resolve(__dirname, '../certs/mincyfry_root_ca.cer'
 import { NextResponse } from 'next/server';
 import { getGigaChatToken } from '../../../lib/auth';
 
