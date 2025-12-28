@@ -113,27 +113,13 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen py-10 px-4 transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
-      <div className={`max-w-4xl mx-auto shadow-lg rounded-xl p-8 transition-colors duration-200 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-        {/* Заголовок и переключатель темы */}
-        <div className="flex flex-wrap items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">📄 Referent — AI для статей</h1>
-          <button
-            onClick={toggleTheme}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              theme === 'dark'
-                ? 'bg-yellow-500 text-gray-900 hover:bg-yellow-400'
-                : 'bg-gray-800 text-white hover:bg-gray-700'
-            }`}
-          >
-            {theme === 'dark' ? '🌙 Светлая' : '☀️ Тёмная'} тема
-          </button>
-        </div>
-
+    <div className="min-h-screen py-10 px-4 bg-gray-50 text-gray-900">
+      <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+          {/* Заголовок */}
+        <h1 className="text-2xl font-bold">📄 Referent — AI для статей</h1>   
         <p className={`mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
           Введите URL англоязычной статьи. Приложение выполнит парсинг и, по нажатию кнопки, обработает текст с помощью ИИ.
         </p>
-
         {/* Поле ввода URL */}
         <div className="mb-6">
           <label htmlFor="url" className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -218,6 +204,7 @@ export default function Home() {
             </p>
           )}
         </div>
+
       </div>
     </div>
   );
