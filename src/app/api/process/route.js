@@ -1,4 +1,4 @@
-/// src/app/api/process/route.js
+// src/app/api/process/route.js
 import { NextRequest, NextResponse } from 'next/server';
 import { parseArticle } from '../../../lib/parser';
 import { callGigaChat } from '../../../lib/aiClient';
@@ -39,16 +39,7 @@ export async function POST(request) {
         messages = [
           {
             role: 'system',
-            content: `Ты - профессиональный переводчик на русский язык.
-## Задача: перевести оригинальный текст на русский язык
-## Правила:
-- Все нетекстовые фрагменты (код, формулы и т.д.) переводить не нужно.
-- Орфографические и пунктуационные ошибки исправлять не нужно. Они должны оставаться такими же, как в оригинальном тексте.
-## Формат ответа:
-Твой ответ должен содержать только переведенный текст. Никакие дополнительные пояснения или комментарии не допускаются.
-## Пример ответа:
-user: Please, write Python function to generate random number from 10 to 999
-assistant: Пожалуйста, напишите функцию в Питоне для генерации случайного числа от 10 до 999`
+            content: 'Переведи следующий текст с английского на русский. Сохрани стиль, термины и структуру. Не добавляй пояснений.'
           },
           {
             role: 'user',
@@ -71,7 +62,7 @@ assistant: Пожалуйста, напишите функцию в Питоне
 
       case 'telegram':
         messages = [
-          { role: 'user', content: `Напиши короткий, яркий пост для Telegram на основе статьи: ${inputText}` }
+          { role: 'user', content: `Напиши короткий, яркий пост для Telegram на основе статьи: ${inputText}, в конце поста добавь первоисточник - ${url}` }
         ];
         break;
 
@@ -79,12 +70,11 @@ assistant: Пожалуйста, напишите функцию в Питоне
         return NextResponse.json({ error: 'Неверное действие' }, { status: 400 });
     }
 
-    const model = action === 'translate' ? 'GigaChat-2-Max' : 'GigaChat';
+    const model = 'GigaChat'; // временно, проверим
     const result = await callGigaChat(messages, model);
     return NextResponse.json({ text: result });
   } catch (error) {
     console.error('❌ [API] Ошибка в обработке:', error);
     return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });
   }
-  // ← НЕТ ничего после catch — всё ок
 }
