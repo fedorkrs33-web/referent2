@@ -1,48 +1,80 @@
 // src/app/api/process/route.js
 import { NextRequest, NextResponse } from 'next/server';
-import { parseArticle } from '@/lib/parser';
-import { callGigaChat } from '@/lib/aiClient';
+import { parseArticle } from '../../../lib/parser';
+import { callGigaChat } from '../../../lib/aiClient';
 
 export async function POST(request) {
-  try {
-    const { url, action } = await request.json();
+  console.log('📩 [API] Получен POST-запрос');
 
-    if (!url || !action) {
-      return NextResponse.json(
-        { error: 'URL и действие обязательны' },
-        { status: 400 }
-      );
+  try {
+    const data = await request.json();
+    console.log('📥 [API] Данные получены:', data);
+
+    const { url, action, text } = data;
+
+    if (!action) {
+      console.log('❌ [API] Нет действия');
+      return NextResponse.json({ error: 'Действие обязательно' }, { status: 400 });
     }
 
-    // 1. Парсим статью
-    const text = await parseArticle(url);
+    let inputText = '';
 
-    // 2. Формируем промпт
-    let prompt = '';
+    if (url) {
+      inputText = await parseArticle(url);
+    } else if (text) {
+      inputText = text;
+    } else {
+      console.log('❌ [API] Нет текста или URL');
+      return NextResponse.json({ error: 'Нет URL или текста' }, { status: 400 });
+    }
+
+    if (action === 'parse') {
+      return NextResponse.json({ text: inputText });
+    }
+
+    let messages = [];
+
     switch (action) {
+      case 'translate':
+        messages = [
+          {
+            role: 'system',
+            content: 'Переведи следующий текст с английского на русский. Сохрани стиль, термины и структуру. Не добавляй пояснений.'
+          },
+          {
+            role: 'user',
+            content: inputText
+          }
+        ];
+        break;
+
       case 'summary':
-        prompt = `Кратко опиши, о чём статья: ${text}`;
+        messages = [
+          { role: 'user', content: `Кратко опиши, о чём статья: ${inputText}` }
+        ];
         break;
+
       case 'theses':
-        prompt = `Выдели 3–5 ключевых тезисов: ${text}`;
+        messages = [
+          { role: 'user', content: `Выдели 3–5 ключевых тезисов из статьи: ${inputText}` }
+        ];
         break;
+
       case 'telegram':
-        prompt = `Напиши короткий, яркий пост для Telegram. Эмоционально: ${text}`;
+        messages = [
+          { role: 'user', content: `Напиши короткий, яркий пост для Telegram на основе статьи: ${inputText}, в конце поста добавь первоисточник - ${url}` }
+        ];
         break;
+
       default:
         return NextResponse.json({ error: 'Неверное действие' }, { status: 400 });
     }
 
-    // 3. Запрос к GigaChat
-    const result = await callGigaChat([{ role: 'user', content: prompt }]);
-
-    // 4. Ответ
+    const model = 'GigaChat'; // временно, проверим
+    const result = await callGigaChat(messages, model);
     return NextResponse.json({ text: result });
   } catch (error) {
-    console.error('Ошибка в API:', error);
-    return NextResponse.json(
-      { error: 'Не удалось обработать запрос' },
-      { status: 500 }
-    );
+    console.error('❌ [API] Ошибка в обработке:', error);
+    return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });
   }
 }
