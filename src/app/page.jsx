@@ -6,70 +6,39 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
- 
-    if (!url) return;
+
+  const handleAction = async (action) => {
+    if (!url) {
+      setResult('Введите URL статьи');
+      return;
+    }
+
     setLoading(true);
     setResult('');
 
     try {
-      const text = await parseArticle(url);
+      const res = await fetch('/api/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, action }),
+      });
 
-      let prompt = '';
-      switch (action) {
-        case 'summary':
-          prompt = `Кратко опиши, о чём статья: ${text}`;
-          break;
-        case 'theses':
-          prompt = `Выдели 3–5 ключевых тезисов: ${text}`;
-          break;
-        case 'telegram':
-          prompt = `Напиши пост для Telegram: ${text}`;
-          break;
-        default:
-          return;
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Неизвестная ошибка');
       }
 
-      const aiText = await callGigaChat([
-        { role: 'user', content: prompt }
-      ]);
-
-      setResult(aiText);
+      setResult(data.text);
     } catch (err) {
-      setResult(`Ошибка: ${err.message}`);
+      setResult(`❌ Ошибка: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
- const handleAction = async (action) => {
-   if (!url) {
-    setResult('Введите URL статьи');
-    return;
-  }
 
-  setLoading(true);
-  setResult('');
-
-  try {
-    const res = await fetch('/api/process', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url, action }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Неизвестная ошибка');
-    }
-
-    setResult(data.text);
-  } catch (err) {
-    setResult(`❌ Ошибка: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-8">
