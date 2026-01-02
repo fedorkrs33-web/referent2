@@ -14,6 +14,20 @@ export default function Home() {
   const [error, setError] = useState('');
   const resultRef = useRef(null); // 🔧 Для прокрутки
 
+  // Инициализация темы при загрузке
+  useEffect(() => {
+    // Проверяем сохраненную тему или системную
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    
+    // Применяем тему сразу
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
   // Прокрутка к результату
   useEffect(() => {
     if (result && resultRef.current) {
@@ -21,9 +35,16 @@ export default function Home() {
     }
   }, [result]);
 
-  // Применяем тему к body
+  // Применяем тему к html элементу
   useEffect(() => {
-    document.body.className = theme === 'dark' ? 'dark' : '';
+    const html = document.documentElement;
+    if (theme === 'dark') {
+      html.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      html.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
   }, [theme]);
 
   const toggleTheme = () => {
@@ -178,16 +199,28 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen py-10 px-4 bg-gray-50 text-gray-900">
-      <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-          {/* Заголовок */}
-        <h1 className="text-2xl font-bold">📄 Referent — AI для статей</h1>   
-        <p className={`mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+    <div className="min-h-screen py-10 px-4 bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <div className="p-6 max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+          {/* Заголовок с переключателем темы */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            📄 Referent — AI для статей
+          </h1>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Переключить на тёмную тему' : 'Переключить на светлую тему'}
+            className="px-3 py-2 rounded-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-yellow-400 dark:hover:bg-gray-600"
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+        </div>
+        <p className="mb-6 text-gray-600 dark:text-gray-300">
           Введите URL англоязычной статьи. Приложение выполнит парсинг и, по нажатию кнопки, обработает текст с помощью ИИ.
         </p>
           {/* Поле ввода URL */}
         <div className="mb-6">
-          <label htmlFor="url" className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+          <label htmlFor="url" className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">
             URL англоязычной статьи
           </label>
           <input
@@ -196,11 +229,7 @@ export default function Home() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Введите URL статьи, например: https://example.com/article"
-            className={`w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition
-              ${theme === 'dark'
-                ? 'bg-gray-700 border-gray-600 text-white focus:ring-blue-500'
-                : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500'
-              }`}
+            className="w-full px-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:outline-none transition bg-white border-gray-300 text-gray-900 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500"
          />
         </div>
 
@@ -273,8 +302,7 @@ export default function Home() {
         
         {/* Блок текущего процесса */}
         {currentAction && (
-          <div className={`mb-4 p-3 rounded-lg text-sm font-medium
-            ${theme === 'dark' ? 'bg-blue-900/30 text-blue-200' : 'bg-blue-100 text-blue-800'}`}
+          <div className="mb-4 p-3 rounded-lg text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
           >
             {currentAction === 'parse' && '🌐 Загружаю статью…'}
             {currentAction === 'translate' && '🔤 Перевожу на русский…'}
@@ -286,15 +314,11 @@ export default function Home() {
 
         {/* Блок результата */}
         <div ref={resultRef} className="mt-6">
-          <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+          <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
             Результат:
           </h3>
            
-          <div
-            className={`p-4 rounded-lg text-sm relative ${
-              theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-blue-50 text-gray-800'
-            }`}
-          >
+          <div className="p-4 rounded-lg text-sm relative bg-blue-50 text-gray-800 dark:bg-gray-700 dark:text-gray-100">
             {loading ? (
               <div className="flex items-center text-blue-500">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -310,7 +334,7 @@ export default function Home() {
             ) : result ? (
               <div className="whitespace-pre-wrap leading-relaxed font-sans">{result}</div>
             ) : (
-              <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+              <p className="text-gray-500 dark:text-gray-400">
                 Нажмите кнопку, чтобы получить результат.
               </p>
             )}
@@ -326,7 +350,7 @@ export default function Home() {
                   );
                 }}
                 title="Скопировать результат"
-                className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded border transition"
+                className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-gray-100 rounded border transition"
               >
                 📋 Копировать
               </button> 
