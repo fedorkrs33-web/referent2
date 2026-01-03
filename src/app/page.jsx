@@ -12,6 +12,7 @@ export default function Home() {
   const [theme, setTheme] = useState('light'); // 'light' или 'dark'
   const [currentAction, setCurrentAction] = useState(''); // например: 'parse', 'translate'
   const [error, setError] = useState('');
+  const [image, setImage] = useState(null);
   const resultRef = useRef(null); // 🔧 Для прокрутки
 
   // Инициализация темы при загрузке
@@ -198,6 +199,43 @@ export default function Home() {
     }
   };
 
+  // Генерация иллюстрации
+  const handleIllustrate = async () => {
+    if (!parsedText) {
+      setError('Сначала выполните парсинг статьи');
+      return;
+    }
+
+    setLoading(true);
+    setCurrentAction('illustrate');
+    setImage(null);
+    setResult('');
+    setError('');
+
+    try {
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: parsedText }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error);
+        return;
+      }
+
+      const data = await res.json();
+      setImage(data.imageUrl);
+      setResult(`Промпт: ${data.prompt}`);
+    } catch (err) {
+      setError('Не удалось сгенерировать изображение');
+    } finally {
+      setLoading(false);
+      setCurrentAction('');
+    }
+  };
+
   return (
     <div className="min-h-screen py-10 px-4 bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <div className="p-6 max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -280,6 +318,16 @@ export default function Home() {
           >
             Пост для Telegram
           </button>
+          {/* Кнопка иллюстрапции */}
+          <button
+            type="button"
+            disabled={!parsedText || loading}
+            onClick={handleIllustrate}
+            title="Создать иллюстрацию к статье"
+            className="px-5 py-2 bg-pink-600 text-white font-medium rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            🖼 Иллюстрация
+          </button>
           {/* Кнопка очистки */}
           <button
             type="button"
@@ -356,6 +404,21 @@ export default function Home() {
               </button> 
             )}
           </div>
+        {/* Изображение */}
+        {image && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
+              Иллюстрация:
+            </h3>
+            <div className="flex justify-center">
+              <img
+                src={image}
+                alt="Сгенерированная иллюстрация"
+                className="max-w-full h-auto rounded-lg shadow-md"
+              />
+            </div>
+          </div>
+        )}  
         </div>
       </div>
     </div>
