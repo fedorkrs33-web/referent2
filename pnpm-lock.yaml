@@ -26,12 +26,18 @@ importers:
       next:
         specifier: ^16.0.10
         version: 16.1.1(@babel/core@7.28.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      openai:
+        specifier: ^6.15.0
+        version: 6.15.0(zod@4.3.4)
       react:
         specifier: ^19.2.1
         version: 19.2.3
       react-dom:
         specifier: ^19.2.1
         version: 19.2.3(react@19.2.3)
+      sonner:
+        specifier: ^2.0.7
+        version: 2.0.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -1682,6 +1688,18 @@ packages:
     resolution: {integrity: sha512-gXah6aZrcUxjWg2zR2MwouP2eHlCBzdV4pygudehaKXSGW4v2AsRQUK+lwwXhii6KFZcunEnmSUoYp5CXibxtA==}
     engines: {node: '>= 0.4'}
 
+  openai@6.15.0:
+    resolution: {integrity: sha512-F1Lvs5BoVvmZtzkUEVyh8mDQPPFolq4F+xdsx/DO8Hee8YF3IGAlZqUIsF+DVGhqf4aU0a3bTghsxB6OIsRy1g==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -1874,6 +1892,12 @@ packages:
   side-channel@1.1.0:
     resolution: {integrity: sha512-ZX99e6tRweoUXqR+VBrslhda51Nh5MTQwou5tnUDgbtyM0dBgmhEDtWGP/xbKn6hqfPRHujUNwz5fy/wbbhnpw==}
     engines: {node: '>= 0.4'}
+
+  sonner@2.0.7:
+    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -3830,6 +3854,10 @@ snapshots:
       define-properties: 1.2.1
       es-object-atoms: 1.1.1
 
+  openai@6.15.0(zod@4.3.4):
+    optionalDependencies:
+      zod: 4.3.4
+
   optionator@0.9.4:
     dependencies:
       deep-is: 0.1.4
@@ -4077,6 +4105,11 @@ snapshots:
       side-channel-list: 1.0.0
       side-channel-map: 1.0.1
       side-channel-weakmap: 1.0.2
+
+  sonner@2.0.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
 
   source-map-js@1.2.1: {}
 

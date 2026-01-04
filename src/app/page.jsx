@@ -3,11 +3,15 @@
 
 import { useState, useEffect, useRef } from 'react'; // ← Добавлен useRef
 import { ErrorMessage } from '../components/ErrorMessage';
+import { Toaster, toast } from 'sonner';
+import { generateImage } from '../lib/generateImage'
 
 export default function Home() {
   const [url, setUrl] = useState('');
   const [parsedText, setParsedText] = useState('');
   const [result, setResult] = useState('');
+  const [illustrationUrl, setIllustrationUrl] = useState('');
+  const [illustrationPrompt, setIllustrationPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState('light'); // 'light' или 'dark'
   const [currentAction, setCurrentAction] = useState(''); // например: 'parse', 'translate'
@@ -50,6 +54,20 @@ export default function Home() {
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+    // Определяем, русский ли текст
+  const isRussian = (text) => {
+    if (!text) return false;
+    const russianChars = text.match(/[а-яА-ЯёЁ]/g);
+    const englishChars = text.match(/[a-zA-Z]/g);
+  
+    if (!russianChars) return false;
+    if (!englishChars) return true;
+
+    // Если русских букв больше 30% от всех латинских + кириллических — считаем русским
+    const total = russianChars.length + englishChars.length;
+    return russianChars.length / total > 0.3;
   };
 
   // Парсинг статьи
@@ -110,45 +128,24 @@ export default function Home() {
       }
 
       const data = await res.json();
-      setParsedText(data.text);
-      setResult(data.text);
-    } catch (err) {
-      setError('Не удалось подключиться к серверу. Проверьте интернет-соединение.');
-    } finally {
-      setLoading(false);
-      setCurrentAction('');
-    }
-  };
+      const text = data.text;
 
-  // Перевод на русский
-  const handleTranslate = async () => {
-    if (!parsedText) {
-      setResult('Сначала выполните парсинг статьи');
-      return;
-    }
+      setParsedText(text);
+      setResult(text);
 
-    setLoading(true);
-    setCurrentAction('translate');
-    setResult('');
-    setError('');
+      // ✅ Определяем язык
+      const isRu = isRussian(text);
 
-    try {
-      const res = await fetch('/api/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: parsedText, action: 'translate' }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError('Не удалось перевести текст. Попробуйте позже.');
-        return;
+      // ✅ Если НЕ русский — покажем, что нужно перевести
+      if (!isRu) {
+        setResult('✅ Статья на английском. Нажмите «Перевод на русский», чтобы продолжить.');
+      } else {
+        // ✅ Если русский — можно сразу использовать
+        setResult('✅ Статья на русском. Можно использовать кнопки ниже.');
       }
 
-      const data = await res.json();
-      setResult(data.text);
     } catch (err) {
-      setError('Не удалось подключиться к серверу.');
+      setError('Не удалось подключиться к серверу. Проверьте интернет-соединение.');
     } finally {
       setLoading(false);
       setCurrentAction('');
@@ -162,80 +159,127 @@ export default function Home() {
       return;
     }
 
-    setLoading(true);
-    setCurrentAction(action);
-    setResult('');
-    setError('');
+  const isRu = isRussian(parsedText);
 
-    try {
-      const res = await fetch('/api/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: parsedText, action }),
-      });
+  // ✅ Блокируем действия, если не русский и не перевод
+  if (!isRu && action !== 'translate') {
+    setResult('⚠ Сначала переведите статью на русский язык.');
+    toast.info('Сначала нажмите «Перевод на русский»');
+    return;
+  }
 
-      if (!res.ok) {
+  setCurrentAction(action);
+  setResult('');
+  setError('');
+
+  try {
+    switch (action) {
+      case 'translate': {
+        try {
+          const res = await fetch('/api/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: parsedText, action: 'translate' }),
+          });
+
+          if (!res.ok) throw new Error('Не удалось перевести');
+
+          const data = await res.json();
+          setParsedText(data.text);
+          setResult(data.text);
+        } catch (err) {
+          setError(`Ошибка перевода: ${err.message}`);
+          setResult(`❌ Не удалось перевести: ${err.message}`);
+        }  
+        break;
+      }
+
+      case 'illustrate': {
+        setLoading(true);
+        setCurrentAction('illustrate');
+        setError('');
+        setIllustrationPrompt('');
+        setIllustrationUrl('');
+
+        let fullPrompt;
+        let imagePrompt;
+
+        try {
+          setLoading(true);
+          const res = await fetch('/api/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: parsedText, action: 'illustrate' }),
+          });
+
+          if (!res.ok) throw new Error('Не удалось получить промт');
+
+          const data = await res.json();
+          fullPrompt = data.text || data.prompt;
+
+          if (!fullPrompt) throw new Error('API не вернул промт');
+
+          setResult(fullPrompt); // Показываем полный промт
+          setLoading(false);
+
+          const promptMatch = fullPrompt.match(/🔥 "?«(.+?)»"?/s) || fullPrompt.match(/"(.+?)"/s);
+          imagePrompt = promptMatch ? promptMatch[1] : fullPrompt.split('\n').pop()?.trim();
+
+          if (!imagePrompt) throw new Error('Не удалось извлечь промт');
+
+          setIllustrationPrompt(imagePrompt);
+
+          const imageRes = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: imagePrompt }),
+          });
+
+          if (!imageRes.ok) {
+            const errData = await imageRes.json();
+            throw new Error(errData.error || 'Ошибка генерации');
+          }
+
+          const imageJson = await imageRes.json();
+          setIllustrationUrl(imageJson.url);
+          setResult(`${fullPrompt}\n\n✅ Изображение сгенерировано`);
+        } catch (err) {
+          console.error('❌ Ошибка генерации:', err);
+          setError(`Ошибка: ${err.message}`);
+          if (fullPrompt) {
+            setResult(`${fullPrompt}\n\n❌ Не удалось сгенерировать: ${err.message}`);
+          }
+        }
+        break;
+      }
+
+      default: {
+        const res = await fetch('/api/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: parsedText, action }),
+        });
+
+        if (!res.ok) throw new Error('Ошибка API');
+
         const data = await res.json();
-        console.error('❌ [Frontend] Ошибка API:', data);
+        let resultText = data.text;
 
-        setError('Не удалось получить ответ от ИИ. Попробуйте позже.');
-        return;
+        if (action === 'telegram' && url) {
+          resultText += `\n\n📄 Источник: ${url}`;
+        }
+
+        setResult(resultText);
+        break;
       }
-
-      const data = await res.json();
-
-      let resultText = data.text;
-
-      if (action === 'telegram' && url) {
-        resultText += `\n\n📄 Источник: ${url}`;
-      }
-
-      setResult(resultText);
-    } catch (err) {
-      setError('Ошибка соединения с сервером. Проверьте интернет.');
-    } finally {
-      setLoading(false);
-      setCurrentAction('');
     }
-  };
-
-  // Генерация иллюстрации
-  const handleIllustrate = async () => {
-    if (!parsedText) {
-      setError('Сначала выполните парсинг статьи');
-      return;
-    }
-
-    setLoading(true);
-    setCurrentAction('illustrate');
-    setImage(null);
-    setResult('');
-    setError('');
-
-    try {
-      const res = await fetch('/api/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: parsedText }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error);
-        return;
-      }
-
-      const data = await res.json();
-      setImage(data.imageUrl);
-      setResult(`Промпт: ${data.prompt}`);
-    } catch (err) {
-      setError('Не удалось сгенерировать изображение');
-    } finally {
-      setLoading(false);
-      setCurrentAction('');
-    }
-  };
-
+  } catch (err) {
+    setError(`Ошибка: ${err.message}`);
+  } finally {
+    setLoading(false);
+    setCurrentAction('');
+  }
+}; 
   return (
     <div className="min-h-screen py-10 px-4 bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <div className="p-6 max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -285,7 +329,7 @@ export default function Home() {
           <button
             type="button"
             disabled={!parsedText || loading}
-            onClick={handleTranslate}
+            onClick={handleAction}
             title="Перевести текст статьи на русский язык"
             className="px-5 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
@@ -322,11 +366,11 @@ export default function Home() {
           <button
             type="button"
             disabled={!parsedText || loading}
-            onClick={handleIllustrate}
+            onClick={() => handleAction('illustrate')}
             title="Создать иллюстрацию к статье"
             className="px-5 py-2 bg-pink-600 text-white font-medium rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            🖼 Иллюстрация
+            Иллюстрация
           </button>
           {/* Кнопка очистки */}
           <button
@@ -357,6 +401,7 @@ export default function Home() {
             {currentAction === 'summary' && '📌 Определяю суть статьи…'}
             {currentAction === 'theses' && '🧩 Выделяю ключевые тезисы…'}
             {currentAction === 'telegram' && '✉️ Готовлю пост для Telegram…'}
+            {currentAction === 'illustrate' && '🖼 Создаю промт для генерации иллюстрации' }
           </div>
         )}
 
@@ -393,8 +438,8 @@ export default function Home() {
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(result).then(
-                    () => alert('Скопировано!'),
-                    () => alert('Ошибка копирования')
+                    () => toast.success('Скопировано!'),
+                    () => toast.error('Ошибка копирования')
                   );
                 }}
                 title="Скопировать результат"
@@ -404,22 +449,61 @@ export default function Home() {
               </button> 
             )}
           </div>
-        {/* Изображение */}
-        {image && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
-              Иллюстрация:
-            </h3>
-            <div className="flex justify-center">
-              <img
-                src={image}
-                alt="Сгенерированная иллюстрация"
-                className="max-w-full h-auto rounded-lg shadow-md"
-              />
-            </div>
-          </div>
-        )}  
         </div>
+        {/* 🔥 Блок: Иллюстрация */}
+        {illustrationPrompt || illustrationUrl ? (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+              🎨 Иллюстрация по статье
+            </h3>
+
+            {/* Показываем промт, пока изображение не готово */}
+            {illustrationPrompt && !illustrationUrl && (
+              <div className="p-4 rounded-lg border bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300">
+                <p className="text-sm italic">🔄 Генерация изображения...</p>
+                <p className="mt-2 text-sm font-mono leading-relaxed">
+                  {illustrationPrompt}
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  Ожидание изображения...
+                </div>
+              </div>
+            )}
+
+            {/* Готовое изображение */}
+            {illustrationUrl && (
+              <div className="flex justify-center">
+                <img
+                  src={illustrationUrl}
+                  alt="Иллюстрация к статье"
+                  className="max-w-full h-auto rounded-lg shadow-lg border transition-transform hover:scale-[1.02]"
+                  style={{ maxHeight: '600px', objectFit: 'contain' }}
+                  onError={(e) => {
+                    e.target.src = '/fallback-image.png';
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Кнопка скачать */}
+            {illustrationUrl && (
+              <div className="text-center mt-3">
+                <a
+                  href={illustrationUrl}
+                  download="illustration.jpg"
+                  className="text-sm px-4 py-1.5 rounded inline-flex items-center gap-1
+                    bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white transition"
+                >
+                 📥 Скачать изображение
+                </a>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

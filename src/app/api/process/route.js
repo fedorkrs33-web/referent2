@@ -1,10 +1,10 @@
 // src/app/api/process/route.js
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { parseArticle } from '../../../lib/parser';
 import { callGigaChat } from '../../../lib/aiClient';
+import { generateImage } from '../../../lib/generateImage';
 
 export async function POST(request) {
-  console.log('📩 [API] Получен POST-запрос');
 
   try {
     const data = await request.json();
@@ -39,7 +39,7 @@ export async function POST(request) {
         messages = [
           {
             role: 'system',
-            content: 'Переведи следующий текст с английского на русский. Сохрани стиль, термины и структуру. Не добавляй пояснений.'
+            content: 'Переведи следующий текст с английского на русский. Сохрани стиль, термины и структуру Не добавляй пояснений.'
           },
           {
             role: 'user',
@@ -62,10 +62,15 @@ export async function POST(request) {
 
       case 'telegram':
         messages = [
-          { role: 'user', content: `Напиши короткий, яркий пост для Telegram на основе статьи: ${inputText}, в конце поста добавь первоисточник - ${url}` }
+          { role: 'user', content: `Напиши короткий, яркий пост для Telegram на основе статьи: ${inputText}` }
         ];
         break;
 
+      case 'illustrate':
+        messages = [
+          { role: 'user', content: `Напиши короткий промт для генерации изображения на основе статьи: ${inputText}, в ответе используй только текст` }
+        ];
+        break;
       default:
         return NextResponse.json({ error: 'Неверное действие' }, { status: 400 });
     }
@@ -74,7 +79,7 @@ export async function POST(request) {
     const result = await callGigaChat(messages, model);
     return NextResponse.json({ text: result });
   } catch (error) {
-    console.error('❌ [API] Ошибка в обработке:', error);
+    console.error('❌ [API] Ошибка:', error.message);
     return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });
   }
 }

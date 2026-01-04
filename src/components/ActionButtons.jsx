@@ -15,6 +15,9 @@ export default function ActionButtons({ onAction, disabled }) {
       <Button onClick={() => onAction('telegram')} disabled={disabled} variant="warning">
         Пост для Telegram
       </Button>
+      <Button onClick={() => onAction('illustrate')} disabled={disabled} variant="info">
+        🎨 Иллюстрация
+      </Button>
     </div>
   );
 }

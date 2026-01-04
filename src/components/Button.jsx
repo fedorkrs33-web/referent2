@@ -2,6 +2,7 @@
 export default function Button({ children, onClick, disabled, variant = "primary", className = "" }) {
   const base = "px-5 py-2 font-medium rounded-lg transition flex items-center gap-2";
   const variants = {
+    info: "bg-blue-600 hover:bg-blue-700 text-white",
     primary: "bg-blue-600 hover:bg-blue-700 text-white",
     secondary: "bg-orange-600 hover:bg-orange-700 text-white",
     success: "bg-green-600 hover:bg-green-700 text-white",
