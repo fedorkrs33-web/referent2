@@ -1,6 +1,14 @@
-// src/components/InputGroup.jsx
+// src/components/InputGroup.tsx
 import Button from './Button';
-export default function InputGroup({ value, onChange, onParse, disabled }) {
+
+interface InputGroupProps {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onParse: () => void;
+  disabled?: boolean;
+}
+
+export default function InputGroup({ value, onChange, onParse, disabled }: InputGroupProps) {
   return (
     <div className="flex flex-wrap gap-2 mb-6">
       <input
@@ -16,3 +24,4 @@ export default function InputGroup({ value, onChange, onParse, disabled }) {
     </div>
   );
 }
+

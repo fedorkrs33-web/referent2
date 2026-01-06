@@ -1,5 +1,10 @@
-// src/components/ResultBox.jsx
-export default function ResultBox({ result, loading }) {
+// src/components/ResultBox.tsx
+interface ResultBoxProps {
+  result: string;
+  loading: boolean;
+}
+
+export default function ResultBox({ result, loading }: ResultBoxProps) {
   return (
     <div className="mt-6 p-4 rounded-lg text-sm bg-blue-50 text-gray-800 dark:bg-gray-700 dark:text-gray-100">
       <h3 className="text-lg font-semibold mb-3 dark:text-gray-200">Результат:</h3>
@@ -19,3 +24,4 @@ export default function ResultBox({ result, loading }) {
     </div>
   );
 }
+

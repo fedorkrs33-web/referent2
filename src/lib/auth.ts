@@ -1,8 +1,6 @@
-// src/lib/auth.js
+// src/lib/auth.ts
 import axios from 'axios';
 import https from 'https';
-import fs from 'fs';
-import path from 'path';
 
 // ⚠️ Отключаем проверку SSL на Vercel
 // Сертификат Минцифры недоступен в облаке
@@ -10,11 +8,16 @@ const httpsAgent = new https.Agent({
   rejectUnauthorized: false, // 🔴 Отключаем проверку сертификата
 });
 
-let accessToken = null;
-let tokenExpiry = null;
+let accessToken: string | null = null;
+let tokenExpiry: number | null = null;
 
-export async function getGigaChatToken() {
-  if (accessToken && tokenExpiry > Date.now()) {
+interface TokenResponse {
+  access_token: string;
+  expires_in: number;
+}
+
+export async function getGigaChatToken(): Promise<string> {
+  if (accessToken && tokenExpiry && tokenExpiry > Date.now()) {
     return accessToken;
   }
 
@@ -28,7 +31,7 @@ export async function getGigaChatToken() {
   const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
 
   try {
-    const response = await axios.post(
+    const response = await axios.post<TokenResponse>(
       url,
       payload,
       {
@@ -49,12 +52,13 @@ export async function getGigaChatToken() {
     return accessToken;
   } catch (error) {
     console.error('❌ [auth] Ошибка получения токена:', {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      data: error.response?.data,
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка',
+      code: axios.isAxiosError(error) ? error.code : undefined,
+      status: axios.isAxiosError(error) ? error.response?.status : undefined,
+      data: axios.isAxiosError(error) ? error.response?.data : undefined,
     });
 
     throw new Error('Не удалось получить токен доступа к GigaChat');
   }
 }
+

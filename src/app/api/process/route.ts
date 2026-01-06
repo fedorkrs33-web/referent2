@@ -1,13 +1,17 @@
-// src/app/api/process/route.js
-import { NextResponse } from 'next/server';
+// src/app/api/process/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { parseArticle } from '../../../lib/parser';
-import { callGigaChat } from '../../../lib/aiClient';
-import { generateImage } from '../../../lib/generateImage';
+import { callGigaChat, type ChatMessage } from '../../../lib/aiClient';
 
-export async function POST(request) {
+interface RequestBody {
+  url?: string;
+  action: string;
+  text?: string;
+}
 
+export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
+    const data: RequestBody = await request.json();
     console.log('📥 [API] Данные получены:', data);
 
     const { url, action, text } = data;
@@ -32,7 +36,7 @@ export async function POST(request) {
       return NextResponse.json({ text: inputText });
     }
 
-    let messages = [];
+    let messages: ChatMessage[] = [];
 
     switch (action) {
       case 'translate':
@@ -79,7 +83,9 @@ export async function POST(request) {
     const result = await callGigaChat(messages, model);
     return NextResponse.json({ text: result });
   } catch (error) {
-    console.error('❌ [API] Ошибка:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    console.error('❌ [API] Ошибка:', errorMessage);
     return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 });
   }
 }
+

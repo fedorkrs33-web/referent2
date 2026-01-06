@@ -1,5 +1,21 @@
-// src/components/Button.jsx
-export default function Button({ children, onClick, disabled, variant = "primary", className = "" }) {
+// src/components/Button.tsx
+import { ReactNode } from 'react';
+
+interface ButtonProps {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'info' | 'outline';
+  className?: string;
+}
+
+export default function Button({ 
+  children, 
+  onClick, 
+  disabled, 
+  variant = "primary", 
+  className = "" 
+}: ButtonProps) {
   const base = "px-5 py-2 font-medium rounded-lg transition flex items-center gap-2";
   const variants = {
     info: "bg-blue-600 hover:bg-blue-700 text-white",
@@ -20,3 +36,4 @@ export default function Button({ children, onClick, disabled, variant = "primary
     </button>
   );
 }
+

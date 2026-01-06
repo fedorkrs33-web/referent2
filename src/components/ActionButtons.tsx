@@ -1,6 +1,12 @@
-// src/components/ActionButtons.jsx
+// src/components/ActionButtons.tsx
 import Button from './Button';
-export default function ActionButtons({ onAction, disabled }) {
+
+interface ActionButtonsProps {
+  onAction: (action: 'translate' | 'summary' | 'theses' | 'telegram' | 'illustrate') => void;
+  disabled?: boolean;
+}
+
+export default function ActionButtons({ onAction, disabled }: ActionButtonsProps) {
   return (
     <div className="mb-6 flex flex-wrap gap-3">
       <Button onClick={() => onAction('translate')} disabled={disabled} variant="secondary">
@@ -21,3 +27,4 @@ export default function ActionButtons({ onAction, disabled }) {
     </div>
   );
 }
+

@@ -1,10 +1,22 @@
-// src/lib/aiClient.js
+// src/lib/aiClient.ts
 import axios from 'axios';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
-
 import { getGigaChatToken } from './auth';
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+interface GigaChatResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
 
 // 🔐 Загружаем сертификат Минцифры
 const certPath = path.resolve(process.cwd(), 'certs', 'mincyfry_root_ca.pem');
@@ -15,7 +27,10 @@ const httpsAgent = new https.Agent({
   rejectUnauthorized: ca ? true : false, // если сертификат есть — строгая проверка
 });
 
-export async function callGigaChat(messages, model = 'GigaChat') {
+export async function callGigaChat(
+  messages: ChatMessage[],
+  model: string = 'GigaChat'
+): Promise<string> {
   try {
     console.log('🔧 [aiClient] Вызов GigaChat');
     console.log('📨 Модель:', model);
@@ -24,7 +39,7 @@ export async function callGigaChat(messages, model = 'GigaChat') {
     const token = await getGigaChatToken();
     console.log('✅ [aiClient] Токен получен');
 
-    const response = await axios.post(
+    const response = await axios.post<GigaChatResponse>(
       'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
       {
         model,
@@ -53,13 +68,13 @@ export async function callGigaChat(messages, model = 'GigaChat') {
     return content;
   } catch (error) {
     console.error('❌ [aiClient] ПОЛНАЯ ОШИБКА:', {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка',
+      code: axios.isAxiosError(error) ? error.code : undefined,
+      status: axios.isAxiosError(error) ? error.response?.status : undefined,
+      data: axios.isAxiosError(error) ? error.response?.data : undefined,
+      url: axios.isAxiosError(error) ? error.config?.url : undefined,
       headers: {
-        auth: !!error.config?.headers?.Authorization,
+        auth: axios.isAxiosError(error) ? !!error.config?.headers?.Authorization : false,
       },
     });
 
