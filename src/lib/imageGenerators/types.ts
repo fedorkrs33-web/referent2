@@ -22,5 +22,5 @@ export interface ImageGenerator {
 /**
  * Типы поддерживаемых генераторов
  */
-export type ImageGeneratorType = 'polza' | 'dalle' | 'openai' | 'rugpt';
+export type ImageGeneratorType = 'polza' | 'dalle' | 'openai' ;
 

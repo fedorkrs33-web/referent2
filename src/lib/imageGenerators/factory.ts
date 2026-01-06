@@ -2,7 +2,6 @@
 import type { ImageGenerator, ImageGeneratorType } from './types';
 import { PolzaGenerator } from './polzaGenerator';
 import { DalleGenerator } from './dalleGenerator';
-import { RuGPTGenerator } from './rugptGenerator';
 
 /**
  * Создать генератор изображений на основе переменных окружения

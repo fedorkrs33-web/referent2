@@ -2,20 +2,21 @@
 import axios from 'axios';
 import type { ImageGenerator } from './types';
 
-const POLLING_INTERVAL = 6000;
-const MAX_RETRIES = 30; // ~150 секунд максимум
+const POLLING_INTERVAL = 3000;
+const MAX_RETRIES = 30; // ~90 секунд максимум
 
 interface CreateImageResponse {
   requestId: string;
 }
 
 interface StatusResponse {
-  status: 'pending' | 'processing' | 'in_progress' | 'ready' | 'error' | 'rejected';
+  status: string; // ✅ Позволяем любые значения: "ready", "COMPLETED", "completed"
   data?: Array<{ url: string }>;
   url?: string;
   image?: string;
   images?: Array<{ url: string }>;
   message?: string;
+  id?: string;
 }
 
 /**
@@ -23,8 +24,8 @@ interface StatusResponse {
  */
 export class PolzaGenerator implements ImageGenerator {
   private apiKey: string;
-  private createUrl = 'https://api.polza.ai/api/v1/images/generations';
-  private statusUrl = 'https://api.polza.ai/v1/images/results';
+  private createUrl = 'https://api.polza.ai/v1/images/generations';
+  private statusUrl = 'https://api.polza.ai/v1/images';
 
   constructor(apiKey: string) {
     if (!apiKey) {
@@ -109,7 +110,7 @@ export class PolzaGenerator implements ImageGenerator {
           prompt: cleanedPrompt,
           size: '1:1',
           n: 1,
-          model: 'seedream-v4',
+          model: 'nano-banana',
         },
         {
           headers: { 'Authorization': `Bearer ${this.apiKey}` },
@@ -117,9 +118,9 @@ export class PolzaGenerator implements ImageGenerator {
         }
       );
 
-      console.log('✅ [Polza] Запрос отправлен, requestId:', createRes.data);
+      console.log('✅ [Polza] Ответ от /generations:', createRes.data);
       requestId = createRes.data.requestId;
-
+      console.log('✅ Используем для опроса requestId:', requestId);
       if (!requestId) {
         throw new Error('Не получен requestId');
       }
@@ -127,22 +128,30 @@ export class PolzaGenerator implements ImageGenerator {
       // 🔄 Этап 2: Опрос статуса
       for (let i = 0; i < MAX_RETRIES; i++) {
         await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
-
+        console.log('🔍 [Polza] Опрашиваю статус с ключом:', `Bearer ${'•'.repeat(this.apiKey.length)}`);
         try {
+          console.log(`🔍 [${i + 1}/${MAX_RETRIES}] ${new Date().toISOString()} — Опрос статуса...`)
+          console.log(`🔁 Попытка ${i + 1}: GET ${this.statusUrl}/${requestId}`);
+
           const statusRes = await axios.get<StatusResponse>(`${this.statusUrl}/${requestId}`, {
             headers: { 'Authorization': `Bearer ${this.apiKey}` },
           });
           
           console.log('🔍 [Polza] Ответ статуса:', JSON.stringify(statusRes.data, null, 2));
+          const status = statusRes.data.status.toLowerCase();
 
-          if (statusRes.data.status === 'ready') {
+          if (status === 'ready' || status === 'completed') {
+            console.log("🔍 Полный ответ API:", JSON.stringify(statusRes.data, null,2)); // Выведет ВСЮ структуру
             const url = 
               statusRes.data.data?.[0]?.url ||
               statusRes.data.url ||
               statusRes.data.image ||
               statusRes.data.images?.[0]?.url;
 
-            if (url) return url;
+            if (url) {
+              console.log('✅ Изображение готово:', url);
+              return url;
+            }
 
             throw new Error('Изображение готово, но URL не найден в ответе');
           }
@@ -192,8 +201,7 @@ export class PolzaGenerator implements ImageGenerator {
         }
         const errorData = data as ErrorData;
         const msg = errorData?.message || 
-                    (typeof errorData?.error === 'string' ? errorData.error : errorData?.error?.message) || 
-                    'Неизвестная ошибка';
+         (typeof errorData?.error === 'string' ? errorData.error : errorData?.error?.message) || 'Неизвестная ошибка';
         throw new Error(`Polza.ai: ${status} — ${msg}`);
       } else if (axios.isAxiosError(error) && error.request) {
         throw new Error('Нет ответа от Polza.ai. Проверьте интернет');
